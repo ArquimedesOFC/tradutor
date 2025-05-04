@@ -109,6 +109,17 @@
       color: #ddd;
     }
 
+    .char-counter {
+      text-align: right;
+      font-size: 0.9rem;
+      color: #ccc;
+      margin-top: 6px;
+    }
+
+    .char-counter.exceeded {
+      color: red;
+    }
+
     .actions {
       text-align: center;
       margin: 30px 0 60px;
@@ -124,6 +135,7 @@
       cursor: pointer;
       transition: all 0.3s ease;
       box-shadow: 0 6px 20px rgba(79, 70, 229, 0.5);
+      margin: 0 10px;
     }
 
     button:hover:enabled {
@@ -154,13 +166,12 @@
       margin: 0 10px;
     }
 
-    /* Lateral esquerda (Histórico) */
     .history {
       position: fixed;
-      top: calc(var(--header-height) + 20px); /* Abaixo do cabeçalho */
+      top: calc(var(--header-height) + 20px);
       left: 0;
       width: 250px;
-      height: calc(100vh - var(--header-height) - var(--footer-height) - 40px); /* Dentro do limite entre cabeçalho e rodapé */
+      height: calc(100vh - var(--header-height) - var(--footer-height) - 40px);
       overflow-y: auto;
       background: var(--glass);
       backdrop-filter: blur(12px);
@@ -205,7 +216,7 @@
       nav {
         display: none;
       }
-      
+
       .history {
         width: 100%;
         position: relative;
@@ -228,11 +239,12 @@
     </nav>
   </header>
 
-  <h1>🈯 Tradutor de Inglês para Português</h1>
+  <h1>🏡 Tradutor de Inglês para Português</h1>
 
   <div class="container">
     <div class="box input-box">
-      <textarea id="text-to-translate" placeholder="Digite o texto em inglês aqui..." aria-label="Texto em inglês"></textarea>
+      <textarea id="text-to-translate" placeholder="Digite o texto em inglês aqui..." aria-label="Texto em inglês" oninput="updateCharCount()"></textarea>
+      <div id="char-counter" class="char-counter">500 caracteres restantes</div>
     </div>
     <div class="box output-box">
       <textarea id="translated-text" placeholder="A tradução aparecerá aqui..." readonly aria-label="Tradução em português"></textarea>
@@ -241,13 +253,12 @@
 
   <div class="actions">
     <button id="translate-btn" onclick="translateText()">Traduzir</button>
+    <button id="translate-long-btn" onclick="translateLongText()">Traduzir Texto Grande</button>
   </div>
 
   <div class="history">
     <h3>Histórico de Traduções</h3>
-    <div id="history-list">
-      <!-- Histórico de traduções será gerado aqui -->
-    </div>
+    <div id="history-list"></div>
   </div>
 
   <footer>
@@ -256,15 +267,30 @@
   </footer>
 
   <script>
+    const maxChars = 500;
     let translationHistory = [];
 
+    function updateCharCount() {
+      const input = document.getElementById('text-to-translate');
+      const counter = document.getElementById('char-counter');
+      const remaining = maxChars - input.value.length;
+
+      counter.textContent = `${remaining} caracteres restantes`;
+      counter.classList.toggle('exceeded', remaining < 0);
+    }
+
     async function translateText() {
-      const input = document.getElementById('text-to-translate').value.trim();
+      const inputText = document.getElementById('text-to-translate').value.trim();
       const output = document.getElementById('translated-text');
       const button = document.getElementById('translate-btn');
 
-      if (!input) {
+      if (!inputText) {
         alert("Por favor, digite um texto para traduzir.");
+        return;
+      }
+
+      if (inputText.length > maxChars) {
+        alert(`O texto excede o limite de ${maxChars} caracteres.`);
         return;
       }
 
@@ -272,10 +298,11 @@
       output.value = "Traduzindo...";
 
       try {
-        const response = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(input)}&langpair=en|pt`);
+        const response = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(inputText)}&langpair=en|pt`);
         const data = await response.json();
-        output.value = data.responseData.translatedText;
-        addTranslationToHistory(input, output.value);
+        const translated = data.responseData.translatedText;
+        output.value = translated;
+        addTranslationToHistory(inputText, translated);
       } catch (error) {
         console.error('Erro:', error);
         output.value = "Erro na tradução. Tente novamente.";
@@ -285,30 +312,71 @@
     }
 
     function addTranslationToHistory(original, translated) {
-      if (translationHistory.length >= 5) {
-        translationHistory.shift();
-      }
+      if (translationHistory.length >= 5) translationHistory.shift();
       translationHistory.push({ original, translated });
-
       updateHistoryDisplay();
     }
 
     function updateHistoryDisplay() {
       const historyList = document.getElementById('history-list');
       historyList.innerHTML = '';
-      
       translationHistory.forEach(item => {
-        const historyItem = document.createElement('div');
-        historyItem.classList.add('history-item');
-        historyItem.textContent = item.original;
-        
-        historyItem.onclick = () => {
+        const el = document.createElement('div');
+        el.className = 'history-item';
+        el.textContent = item.original;
+        el.onclick = () => {
           document.getElementById('text-to-translate').value = item.original;
           document.getElementById('translated-text').value = item.translated;
+          updateCharCount();
         };
-        
-        historyList.appendChild(historyItem);
+        historyList.appendChild(el);
       });
+    }
+
+    async function translateLongText() {
+      const inputText = document.getElementById('text-to-translate').value.trim();
+      const output = document.getElementById('translated-text');
+      const actions = document.querySelector('.actions');
+
+      if (!inputText) {
+        alert("Digite um texto.");
+        return;
+      }
+
+      // Remove link de download anterior, se existir
+      const existingLink = document.getElementById('download-link');
+      if (existingLink) actions.removeChild(existingLink);
+
+      const chunks = inputText.match(/.{1,500}/g);
+      let finalTranslation = '';
+
+      output.value = "Traduzindo partes...";
+
+      for (let i = 0; i < chunks.length; i++) {
+        try {
+          const response = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(chunks[i])}&langpair=en|pt`);
+          const data = await response.json();
+          finalTranslation += data.responseData.translatedText + '\n';
+        } catch (e) {
+          finalTranslation += '[Erro ao traduzir parte do texto]\n';
+        }
+      }
+
+      output.value = finalTranslation;
+
+      const blob = new Blob([finalTranslation], { type: 'text/plain' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = 'traducao.txt';
+      link.textContent = 'Clique aqui para baixar a tradução completa';
+      link.id = 'download-link';
+      link.style.display = 'block';
+      link.style.marginTop = '20px';
+      link.style.color = 'var(--primary)';
+      actions.appendChild(link);
+
+      // Adiciona ao histórico também
+      addTranslationToHistory(inputText, finalTranslation.trim());
     }
   </script>
 
