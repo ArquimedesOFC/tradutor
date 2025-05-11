@@ -1,5 +1,6 @@
 const maxChars = 500;
-let translationHistory = [];
+let translationHistory = JSON.parse(localStorage.getItem('translationHistory')) || [];
+updateHistoryDisplay();
 
 function updateCharCount() {
   const input = document.getElementById('text-to-translate');
@@ -11,7 +12,6 @@ function updateCharCount() {
 
 document.getElementById('translate-btn').addEventListener('click', translateText);
 document.getElementById('translate-long-btn').addEventListener('click', translateLongText);
-document.getElementById('toggle-theme').addEventListener('click', toggleTheme);
 
 function toggleTheme() {
   const body = document.body;
@@ -46,6 +46,7 @@ async function translateText() {
 function addTranslationToHistory(original, translated) {
   if (translationHistory.length >= 5) translationHistory.shift();
   translationHistory.push({ original, translated });
+  localStorage.setItem('translationHistory', JSON.stringify(translationHistory));
   updateHistoryDisplay();
 }
 
