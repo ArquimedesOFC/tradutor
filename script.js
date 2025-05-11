@@ -107,3 +107,11 @@ async function translateLongText() {
 
   addTranslationToHistory(inputText, finalTranslation.trim());
 }
+
+document.getElementById('clear-btn').addEventListener('click', () => {
+  document.getElementById('text-to-translate').value = '';
+  document.getElementById('translated-text').value = '';
+  updateCharCount();
+});
+
+
