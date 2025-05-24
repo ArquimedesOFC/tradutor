@@ -2,7 +2,7 @@ Tradutor
 Tradutor é um projeto de teste que utiliza a API do googletrans para realizar traduções automáticas de textos. Desenvolvido com HTML, este projeto serve como uma base para entender a integração de APIs de tradução em aplicações web.
 
 📌 Objetivo
-O principal objetivo deste projeto é explorar e demonstrar a utilização da API do googletrans em um ambiente web, permitindo traduções simples de textos inseridos pelo usuário.
+O principal objetivo deste projeto é explorar e demonstrar a utilização da API do googletrans em um ambiente web, permitindo traduções simples de textos inseridos pelo usuári.
 
 🚀 Funcionalidades
 Interface web simples para inserção de texto
